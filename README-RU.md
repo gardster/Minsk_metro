@@ -55,6 +55,35 @@ osmconvert -b=27.4,53.82,27.75,54.0 belarus-latest.osm.pbf --out-pbf > belarus-c
 
 # Подготовка OSRM
 # Подготока БД
+
+В скрипте запуска, обратите внимание на ключ -l потому что он сохраняет данные в исходных координатах. Это какраз подходит под наши нужды, но по-хорошему не удобно в остальных рассчётах. Поэтому по умолчанию, osm2pgsql будет преобразовывать в web mercator (3857).
+
+В исходном стиле импорта сохраняется нужный нам класс текгов railway, поэтому нам остаётся только проверить что там хранится
+```
+postgres=# select distinct railway from planet_osm_point;
+     railway
+-----------------
+
+ switch
+ subway_entrance
+ buffer_stop
+ proposed
+ traffic_signals
+ level_crossing
+ station
+ tram_stop
+ preserved
+ halt
+ crossing
+ construction
+(13 rows)
+```
+и использовать в своих проектах.
+
+Проверка
+
+```select st_asgeojson(st_collect(way)) from planet_osm_point where railway='subway_entrance';```
+
 # Запросы
 # Построение областей
 # Публикация
