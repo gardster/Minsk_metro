@@ -82,7 +82,9 @@ postgres=# select distinct railway from planet_osm_point;
 
 Проверка
 
-```select st_asgeojson(st_collect(way)) from planet_osm_point where railway='subway_entrance';```
+```
+select st_asgeojson(st_collect(way)) from planet_osm_point where railway='subway_entrance';
+```
 
 # Запросы
 # Построение областей
