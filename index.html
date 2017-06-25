@@ -1,0 +1,128 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title></title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.38.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.38.0/mapbox-gl.css' rel='stylesheet' />
+
+    <script type="text/javascript" src="data/metro.json"></script>
+
+    <style>
+        body { margin:0; padding:0; }
+h2,
+h3 {
+  margin: 10px;
+  font-size: 1.2em;
+}
+
+h3 {
+  font-size: 1em;
+}
+
+p {
+  font-size: 0.85em;
+  margin: 10px;
+  text-align: left;
+}
+
+
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+
+        .map-overlay {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          background: rgba(255, 255, 255, 0.8);
+          margin-right: 20px;
+          font-family: Arial, sans-serif;
+          overflow: auto;
+          border-radius: 3px;
+        }
+
+        #features {
+          top: 0;
+          height: 80px;
+          margin-top: 20px;
+          width: 400px;
+        }
+
+        #legend {
+          padding: 10px;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+          line-height: 18px;
+          height: 50px;
+          margin-bottom: 40px;
+          width: 100px;
+        }
+
+        .legend-key {
+          display: inline-block;
+          border-radius: 20%;
+          width: 15px;
+          height: 15px;
+          margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+<div id='map'></div>
+<div class='map-overlay' id='features'><h2>Карта пешеходной доступности метро</h2><p>byGIS meetup #3</p></br></div>
+<div class='map-overlay' id='legend'>
+    <div><span class='legend-key' style='background-color:#88FF8844'></span><span> 0 - 5</span></div>
+    <div><span class='legend-key' style='background-color:#FFFF8866'></span><span> 5 - 10</span></div>
+    <div><span class='legend-key' style='background-color:#FF888899'></span><span> &gt;10</span></div>
+</div>
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiZ2FyZHN0ZXIiLCJhIjoiY2o0Y2h0bTlwMG5rZzJxb2FsMjU3Yzg2ZiJ9.6OSgByyx2sXmI2CgkTqPjw';
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v9',
+    center: [27.556800842285156, 53.90494494240358],
+    zoom: 12
+});
+
+map.on("load", function() {
+    map.addSource("metro-area", {
+        "type": "geojson",
+        "data": metro    });
+
+    map.addLayer({
+        "id": "metro-near",
+        "type": "fill",
+        "source": "metro-area",
+        "paint": {
+            "fill-color": "#88FF88",
+            "fill-opacity": 0.2
+        },
+        "filter": ["==", "duration", 1],
+    });
+
+    map.addLayer({
+        "id": "metro-middle",
+        "type": "fill",
+        "source": "metro-area",
+        "paint": {
+            "fill-color": "#FFFF88",
+            "fill-opacity": 0.4
+        },
+        "filter": ["==", "duration", 2],
+    });
+
+    map.addLayer({
+        "id": "metro-far",
+        "type": "fill",
+        "source": "metro-area",
+        "paint": {
+            "fill-color": "#FF8888",
+            "fill-opacity": 0.6
+        },
+        "filter": ["==", "duration", 3],
+    });
+});
+
+</script>
+</body>
+</html>

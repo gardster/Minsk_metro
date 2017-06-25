@@ -28,7 +28,7 @@ create table minsk_polygons as (
         )
     select
         ST_Transform(geom, 4326) as geom,
-        greatest(round(duration/60.0), 1) as duration
+        greatest(floor(duration/300.0), 1) as duration
     from
         segments
         left join minsk_points on ST_Intersects(geom, point)
@@ -44,3 +44,6 @@ create table minsk_areas as (
         minsk_polygons
     group by 1
 );
+
+update minsk_areas set geom = (select ST_Union(geom) from minsk_areas where duration >2) where duration = 3;
+delete from minsk_areas where duration>3;
