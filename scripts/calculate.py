@@ -8,6 +8,7 @@ def get_travel_time(point1, point2):
     return data["routes"][0]["duration"]
 
 def get_points_around(cursor, point):
+    # Case with points from the database
     cursor.execute('''
         select st_asgeojson(way) from planet_osm_point
         where
@@ -19,23 +20,18 @@ def get_points_around(cursor, point):
     return result
 
 def get_points_around_grid(cursor, point):
-    cursor.execute('''
-        select max(st_x(way)), min(st_x(way)), max(st_y(way)), min(st_y(way)) from planet_osm_point
-        where
-            st_intersects(way, ST_Buffer(ST_SetSRID(ST_GeomFromGeoJSON('{}'),4326), 0.02));
-    '''.format(point))
+    # Case with lon-lat grid. Only for demo purpose. Please use web mercator grid for the better picture.
     result = []
-    for row in cursor:
-        maxx= int(row[0]*1000)*10
-        minx= int(row[1]*1000)*10
-        maxy= int(row[2]*1000)*10
-        miny= int(row[3]*1000)*10
-        while minx < maxx:
-            cury = miny
-            while cury < maxy:
-                result.append(json.dumps({"type":"Point","coordinates":[float(minx)/10000.0, float(cury)/10000.0]}))
-                cury += 5
-            minx += 5
+    maxx= int(point['coordinates'][0]*1000)*10 + 200
+    minx= int(point['coordinates'][0]*1000)*10 - 200
+    maxy= int(point['coordinates'][1]*1000)*10 + 200
+    miny= int(point['coordinates'][1]*1000)*10 - 200
+    while minx < maxx:
+        cury = miny
+        while cury < maxy:
+            result.append(json.dumps({"type":"Point","coordinates":[float(minx)/10000.0, float(cury)/10000.0]}))
+            cury += 5
+        minx += 5
     return result
 
 connection = psycopg2.connect('')

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      img {
+          display:block;
+          margin-left: auto;
+            margin-right: auto;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .footnote {
+        position: absolute;
+        bottom: 3em;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Городская аналитика на коленке
+![Default-aligned image](screens/pedestrian.jpg)
+
+.footnote[Драгунов Лев]
+---
+
+# О чём доклад
+
+Пример исследования пространственных данных от идеи и до публикации результата
+
+![:scale 100%](screens/US_Navy.jpg)
+
+---
+
+# Картографический проект на коленке
+
+1. Придумать идею
+2. Собрать данные
+3. Как-то их обработать
+4. Посмотреть что получилось
+5. Ещё раз как-то обработать
+6. Опубликовать
+
+![:scale 50%](screens/worker.jpg)
+
+---
+
+# Сбор данных по открытым источникам
+
+![:scale 100%](screens/overpass-result.png)
+---
+
+# Дополнительные компоненты
+
+- OSRM для прокладки маршрутов
+- postgis для аналитических запросов
+- osm2pgsql чтобы подружить OSM и postgis
+- osmconvert чтобы нарезать карту
+- python чтобы всем этим управлять
+- QGIS чтобы смотреть промежуточные результаты
+
+![:scale 50%](screens/pres.jpg)
+
+---
+
+# Импорт данных, пара слов о нарезке
+
+
+### Плюсы использования чужой выгрузки карты OpenStreetMap:
+
+ - Меньше качать из интернета
+ - Быстрее обработка
+ - Не надо разбираться с дополнительным софтом для нарезки файла
+
+### Минусы использования чужой выгрузки:
+
+ - В выгрузке будут не самые новые данные карты
+ - Нужная область может быть порезана
+ - Для обновления карты нужно перекачивать всю выгрузку с 0
+
+---
+# Качаем выгрузку
+
+http://download.geofabrik.de/europe/belarus-latest.osm.pbf
+
+# И обрезаем её
+
+```
+osmconvert -b=27.4,53.82,27.75,54.0 belarus-latest.osm.pbf --out-pbf > clipped.osm.pbf
+```
+
+.footnote[Итоговый файл 11 мб]
+---
+# Загружаем её всюду
+
+```
+osrm-extract -p profiles/foot.lua clipped.osm.pbf
+osrm-contract clipped.osrm
+
+osm2pgsql -c clipped.osm.pbf -d public -U lev -H localhost -l -S default.style
+```
+---
+# Находим метро в базе данных
+
+``` sql
+select
+    ST_AsGeoJSON(way)
+from
+    planet_osm_point
+where
+    railway='subway_entrance';
+```
+---
+
+class: center, middle
+
+#Поиск точек в которых измеряем время
+
+---
+
+![:scale 100%](screens/duration_points.png)
+
+---
+
+![:scale 100%](screens/duration_raw.png)
+
+---
+# Опрашиваем OSRM
+
+``` python
+def get_travel_time(point1, point2):
+    r = requests.get(
+        'http://localhost:5000/route/v1/driving/{},{};{},{}'.format(
+            point1[0], point1[1], point2[0], point2[1]))
+    data = r.json()
+    return data["routes"][0]["duration"]
+    ```
+---
+# Вставляем в БД
+
+``` sql
+create table minsk_points (point geometry, duration float);
+
+create index on minsk_points using gist(point);
+```
+---
+# Удаляем повторы
+
+``` sql
+delete from minsk_points where ctid in (
+    select
+        ctid
+    from
+    (
+        select
+            ctid,
+            row_number() over (partition by point order by duration) as rnum
+        from
+            minsk_points
+    ) t
+    where
+        t.rnum > 1
+);
+```
+---
+# Переходим от точек к многоугольникам
+
+``` python
+create table minsk_polygons as (
+    with segments as (
+        select
+            (ST_Dump(
+                ST_VoronoiPolygons(
+                    ST_Collect(
+                        point
+                    )
+                )
+            )).geom as geom
+        from
+            minsk_points
+        )
+    select
+        geom,
+        greatest(floor(duration/60.0), 1) as duration
+    from
+        segments
+        left join minsk_points on ST_Intersects(geom, point)
+);
+```
+---
+# Клеим многоугольники в зоны
+
+``` sql
+create table minsk_areas as (
+    select
+        duration,
+        ST_Union(geom) as geom
+    from
+        minsk_polygons
+    group by 1
+);
+```
+
+---
+
+# Смотрим на получившееся в QGIS
+
+![:scale 100%](screens/qgis_result.png)
+
+---
+# Cамое время найти что что-то идёт не так
+
+![:scale 50%](screens/qgis_error.png)
+---
+# Публикация
+
+Хорошо бы чтобы сайт был виден из вне. Варианты:
+
+- Картографический хостинг
+- Собственный хостинг
+---
+# Веб ГИС
+
+- Подложка
+- Хостинг + шаблон
+- Данные
+---
+# Веб ГИС
+
+- Подложка
+  - Mapbox
+- Хостинг + шаблон
+  - Github pages
+- Наши данные
+  - geojson
+---
+# Mapbox
+
+- Mapbox studio
+  - Векторные тайлы
+  - Большое количество стилей
+  - 50 000 бесплатных просмотров ежемесячно
+  - OpenSource тайловый сервер можно развернуть свой
+  - Большие возможности по кастомизации стилей
+  - Хостинг геоданных
+
+- GL SDK
+  - JS библиотека
+  - ГИС для javascript
+---
+# Создаём карту
+```javascript
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v9',
+    center: [27.556800, 53.904945],
+    zoom: 12
+});
+```
+---
+# Добавляем geojson с данными
+
+```javascript
+map.on("load", function() {
+    map.addSource("metro-area", {
+        "type": "geojson",
+        "data": metro    });
+```
+---
+# Разукрашиваем наши данные
+
+```javascript
+    map.addLayer({
+        "id": "metro-near",
+        "type": "fill",
+        "source": "metro-area",
+        "paint": {
+            "fill-color": "#88FF88",
+            "fill-opacity": 0.2
+        },
+        "filter": ["==", "duration", 1],
+    });
+```
+---
+# Результат
+
+https://gardster.github.io/Minsk_metro/
+![:scale 100%](screens/result.png)
+
+---
+# Что можно улучшить?
+
+- Считать лучше в плоских координатах
+- От входа в метро до станции ещё длинный переход
+- Чем лучше данные, тем лучше карта
+- Можно улучшить профиль пешеходного движения
+- Можно сделать для других видов транспорта
+- Другие города
+---
+# https://gardster.github.com/Minsk_metro/
+
+- README-RU.md Более подробное описание первых шагов.
+- https://gardster.github.io/Minsk_metro/
+- scripts директория со скриптами подготовки и обработки данных
+  - setup.sh установка зависимистей. Лучше использовать как пример
+  - run.sh ход эксперимента. Описывает последовательность что за чем вызывается. Лучше использовать тоже как пример
+
+---
+# Итог
+
+ - Веб карты делать не сложно
+ - Это скорее составление кубиков
+ - Важны данные. Программирование - малая часть
+ - Очень важна изначальная идея
+ - Постарайтесь повторить
+---
+# Вопросы?
+
+- lev@dragunov.pro
+- https://gardster.github.com/Minsk_metro/
+- https://gardster.github.io/Minsk_metro/
+
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script>
+        remark.macros.scale = function (percentage) {
+          var url = this;
+          return '<img src="' + url + '" style="width: ' + percentage + '" />';
+        };
+
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>

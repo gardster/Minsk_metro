@@ -80,7 +80,7 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiZ2FyZHN0ZXIiLCJhIjoiY2o0Y2h0bTlwMG5rZzJxb2FsM
 var map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v9',
-    center: [27.556800842285156, 53.90494494240358],
+    center: [27.556800, 53.904945],
     zoom: 12
 });
 
@@ -105,8 +105,8 @@ map.on("load", function() {
         "type": "fill",
         "source": "metro-area",
         "paint": {
-            "fill-color": "#FFFF88",
-            "fill-opacity": 0.4
+            "fill-color": "#FFDD88",
+            "fill-opacity": 0.7
         },
         "filter": ["==", "duration", 2],
     });
@@ -117,7 +117,7 @@ map.on("load", function() {
         "source": "metro-area",
         "paint": {
             "fill-color": "#FF8888",
-            "fill-opacity": 0.6
+            "fill-opacity": 0.8
         },
         "filter": ["==", "duration", 3],
     });
