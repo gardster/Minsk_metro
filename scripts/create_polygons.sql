@@ -28,7 +28,7 @@ create table minsk_polygons as (
         )
     select
         ST_Transform(geom, 4326) as geom,
-        greatest(floor(duration/300.0), 1) as duration
+        greatest(ceil(duration/300.0), 1) as duration
     from
         segments
         left join minsk_points on ST_Intersects(geom, point)
