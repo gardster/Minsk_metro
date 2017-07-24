@@ -45,5 +45,5 @@ create table minsk_areas as (
     group by 1
 );
 
-update minsk_areas set geom = (select ST_Union(geom) from minsk_areas where duration >2) where duration = 3;
-delete from minsk_areas where duration>3;
+update minsk_areas set geom = (select ST_Union(geom) from minsk_areas where duration >3) where duration = 4;
+delete from minsk_areas where duration>4;
