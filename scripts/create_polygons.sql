@@ -20,7 +20,7 @@ create table minsk_polygons as (
                             )
                         )
                 ),
-                4326
+                3857
                 )
             )).geom as geom
         from

@@ -14,10 +14,10 @@ popd
 ../deps/osrm/build/osrm-routed ../data/belarus-clipped.osrm &
 
 # Prepare osm in the database
-../deps/osm2pgsql/build/osm2pgsql -c ../data/belarus-clipped.osm.pbf  -d public -U levdragunov -H localhost  -l -S ../deps/osm2pgsql/default.style
+../deps/osm2pgsql/build/osm2pgsql -c ../data/belarus-clipped.osm.pbf  -d public -U levdragunov -H localhost  -S ../deps/osm2pgsql/default.style
 
-psql -f init_db.sql
-python3 calculate.py
-psql -f delete_duplicates.sql
-psql -f create_polygons.sql
-python3 generate_geojson.py
+psql -d public -U levdragunov -H localhost  -f init_db.sql
+#python3 calculate.py
+#psql -f delete_duplicates.sql
+#psql -f create_polygons.sql
+#python3 generate_geojson.py
