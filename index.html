@@ -54,7 +54,7 @@ p {
           padding: 10px;
           box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
           line-height: 18px;
-          height: 95px;
+          height: 110px;
           margin-bottom: 40px;
           width: 95;
         }
@@ -107,7 +107,8 @@ p {
     <h2>Минуты</h2>
     <div><span class='legend-key' style='background-color:#88FF88'></span><span> 0 - 5</span></div>
     <div><span class='legend-key' style='background-color:#FFDD88'></span><span> 5 - 10</span></div>
-    <div><span class='legend-key' style='background-color:#FF8888'></span><span> &gt;10</span></div>
+    <div><span class='legend-key' style='background-color:#FFAA88'></span><span> 10 - 15</span></div>
+    <div><span class='legend-key' style='background-color:#FF8888'></span><span> &gt;15</span></div>
 </div>
 <script>
 mapboxgl.accessToken = 'pk.eyJ1IjoiZ2FyZHN0ZXIiLCJhIjoiY2o0Y2h0bTlwMG5rZzJxb2FsMjU3Yzg2ZiJ9.6OSgByyx2sXmI2CgkTqPjw';
@@ -150,10 +151,22 @@ map.on("load", function() {
         "type": "fill",
         "source": "metro-area",
         "paint": {
-            "fill-color": "#FF8888",
+            "fill-color": "#FFAA88",
             "fill-opacity": 0.8
         },
         "filter": ["==", "duration", 3],
+    });
+
+
+    map.addLayer({
+        "id": "metro-s-far",
+        "type": "fill",
+        "source": "metro-area",
+        "paint": {
+            "fill-color": "#FF8888",
+            "fill-opacity": 0.8
+        },
+        "filter": ["==", "duration", 4],
     });
 });
 
